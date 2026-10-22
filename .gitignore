@@ -1,0 +1,11 @@
+.npm-cache/
+node_modules/
+.expo/
+dist/
+.env
+.env.local
+.env.*
+!.env.example
+*.tsbuildinfo
+.qa/
+audit-production.json

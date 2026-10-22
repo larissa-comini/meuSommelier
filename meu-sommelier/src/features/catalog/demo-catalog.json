@@ -1,0 +1,347 @@
+{
+  "establishments": [
+    {
+      "slug": "casa-da-uva",
+      "name": "Casa da Uva",
+      "welcome": "Uma mesa, uma conversa, um vinho que combina com você.",
+      "wines": [
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Serra Gaúcha",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 3,
+          "acidity": 3,
+          "tannin": 2,
+          "sweetness": 1,
+          "pairings": [
+            "massas ao molho vermelho",
+            "carnes assadas",
+            "queijos semiduros"
+          ],
+          "wineId": "casa_01",
+          "name": "Encontro · Merlot",
+          "type": "red",
+          "priceCents": 12900,
+          "grapes": [
+            "Merlot"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 2,
+          "acidity": 4,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "peixes grelhados",
+            "frango",
+            "risoto de cogumelos"
+          ],
+          "wineId": "casa_02",
+          "name": "Brisa · Chardonnay",
+          "type": "white",
+          "priceCents": 9900,
+          "grapes": [
+            "Chardonnay"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 2,
+          "acidity": 3,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "saladas",
+            "salmão",
+            "entradas leves"
+          ],
+          "wineId": "casa_03",
+          "name": "Jardim · Rosé",
+          "type": "rose",
+          "priceCents": 8900,
+          "grapes": [
+            "Pinot Noir"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": null,
+          "nonVintage": true,
+          "body": 2,
+          "acidity": 4,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "aperitivos",
+            "frituras",
+            "frutos do mar"
+          ],
+          "wineId": "casa_04",
+          "name": "Celebração · Brut",
+          "type": "sparkling",
+          "priceCents": 15900,
+          "grapes": [
+            "Chardonnay"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": false,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 3,
+          "acidity": 3,
+          "tannin": 3,
+          "sweetness": 1,
+          "pairings": [
+            "carnes"
+          ],
+          "wineId": "casa_05",
+          "name": "Reserva indisponível",
+          "type": "red",
+          "priceCents": 7000,
+          "grapes": [
+            "Merlot"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 5,
+          "acidity": 4,
+          "tannin": 5,
+          "sweetness": 1,
+          "pairings": [
+            "churrasco",
+            "carnes vermelhas",
+            "queijos curados"
+          ],
+          "wineId": "casa_06",
+          "name": "Raízes · Cabernet Sauvignon",
+          "type": "red",
+          "priceCents": 18900,
+          "grapes": [
+            "Cabernet Sauvignon"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 1,
+          "acidity": 5,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "peixe",
+            "frutos do mar",
+            "saladas cítricas"
+          ],
+          "wineId": "casa_07",
+          "name": "Aurora · Sauvignon Blanc",
+          "type": "white",
+          "priceCents": 11900,
+          "grapes": [
+            "Sauvignon Blanc"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 2,
+          "acidity": 4,
+          "tannin": 2,
+          "sweetness": 1,
+          "pairings": [
+            "risoto de cogumelos",
+            "aves",
+            "salmão"
+          ],
+          "wineId": "casa_08",
+          "name": "Delicadeza · Pinot Noir",
+          "type": "red",
+          "priceCents": 14900,
+          "grapes": [
+            "Pinot Noir"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": null,
+          "nonVintage": true,
+          "body": 1,
+          "acidity": 3,
+          "tannin": 1,
+          "sweetness": 4,
+          "pairings": [
+            "sobremesas com frutas",
+            "torta de maçã"
+          ],
+          "wineId": "casa_09",
+          "name": "Doce Brinde · Moscatel",
+          "type": "sparkling",
+          "priceCents": 10900,
+          "grapes": [
+            "Moscato"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 5,
+          "acidity": 3,
+          "tannin": 3,
+          "sweetness": 5,
+          "pairings": [
+            "chocolate amargo",
+            "queijos azuis"
+          ],
+          "wineId": "casa_10",
+          "name": "Noite Serena · Fortificado",
+          "type": "fortified",
+          "priceCents": 21900,
+          "grapes": [
+            "Touriga Nacional"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "mesa-do-vale",
+      "name": "Mesa do Vale",
+      "welcome": "Descubra a sua próxima escolha, uma taça de cada vez.",
+      "wines": [
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 4,
+          "acidity": 3,
+          "tannin": 4,
+          "sweetness": 1,
+          "pairings": [
+            "carnes grelhadas"
+          ],
+          "wineId": "vale_01",
+          "name": "Horizonte · Cabernet",
+          "type": "red",
+          "priceCents": 14500,
+          "grapes": [
+            "Cabernet Sauvignon"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 2,
+          "acidity": 4,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "peixes",
+            "saladas"
+          ],
+          "wineId": "vale_02",
+          "name": "Alvorada · Sauvignon Blanc",
+          "type": "white",
+          "priceCents": 11000,
+          "grapes": [
+            "Sauvignon Blanc"
+          ]
+        },
+        {
+          "currency": "BRL",
+          "active": true,
+          "available": true,
+          "producer": "Vinícola de demonstração",
+          "country": "Brasil",
+          "region": "Origem fictícia",
+          "vintageYear": 2024,
+          "nonVintage": false,
+          "body": 2,
+          "acidity": 3,
+          "tannin": 1,
+          "sweetness": 1,
+          "pairings": [
+            "aperitivos"
+          ],
+          "wineId": "vale_03",
+          "name": "Fim de Tarde · Rosé",
+          "type": "rose",
+          "priceCents": 9500,
+          "grapes": [
+            "Syrah"
+          ]
+        }
+      ]
+    }
+  ]
+}
