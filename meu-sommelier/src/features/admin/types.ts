@@ -1,0 +1,5 @@
+import type { Wine, Establishment } from '@/features/catalog/types';
+export type AdminWine = Wine & { sku: string; style: string; version: number };
+export type AdminEstablishment = Establishment & { version:number; active:boolean; currency:'BRL'; notice:string; priceBands:number[] };
+export type AdminSession = { user:{id:string;email:string;name:string;role:'admin'}; tenant:string; csrfToken:string; expiresAt:string; establishment:AdminEstablishment };
+export type ImportJob = { id:string; name:string; version:number; catalogVersion:number; status:'uploaded'|'validating'|'ready'|'processing'|'completed'|'failed'|'rolled_back'; columns:string[]; rows:Record<string,string>[]; mapping:Record<string,string>; defaults:{type:string;style:string;generateSku:boolean}; warnings:string[]; preview:{row:number;wine:AdminWine;valid:boolean;action:'create'|'update'}[]; errors:{row:number;field:string;message:string;code:string}[]; totals:{created:number;updated:number;ignored:number;error:number}; rollbackEligible?:boolean };

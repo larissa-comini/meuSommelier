@@ -8,9 +8,11 @@ import { useAccount } from '@/features/account/context';
 import { conversationForAccount, createLocalId } from '@/features/account/history';
 import { askSommelier, checkAi } from '@/features/chat/ai';
 import { accumulateUsage, type SessionUsage } from '@/features/chat/usage';
+import { useCatalog } from '@/features/catalog/context';
 
 const emptyCriteria = (): Criteria => ({ text: '', maxPriceCents: null, types: [] });
 function useSessionState(slug: string, requestedId?: string) {
+  useCatalog();
   const router = useRouter();
   const { profile, conversations, updateMode, saveConversation, subscribeAccount } = useAccount();
   const saved = conversationForAccount(conversations, profile?.id, slug, requestedId);

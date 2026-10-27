@@ -1,7 +1,7 @@
 // O piloto usa um servidor separado; nenhuma chave de provedor entra aqui.
 import { fetch } from 'expo/fetch';
 export class ApiError extends Error {
-  constructor(message: string, public status: number, public code?: string, public requestId?: string) { super(message); }
+  constructor(message: string, public status: number, public code?: string, public requestId?: string, public fieldErrors: { field: string; message: string }[] = []) { super(message); }
 }
 export async function apiRequest<T>(path: string, options: RequestInit = {}, sessionToken?: string): Promise<T> {
   const base = process.env.EXPO_PUBLIC_API_URL || (process.env.EXPO_OS === 'web' ? 'http://localhost:3000/api/v1' : undefined);
@@ -19,7 +19,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, ses
     const response = await fetch(`${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`, { ...options, signal: timeout.signal, headers });
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      throw new ApiError(body?.error?.message ?? 'Não foi possível concluir a operação.', response.status, body?.error?.code, body?.error?.requestId);
+      throw new ApiError(body?.error?.message ?? 'Não foi possível concluir a operação.', response.status, body?.error?.code, body?.error?.requestId, body?.error?.fieldErrors ?? []);
     }
     return response.status === 204 ? undefined as T : await response.json() as T;
   } catch (error) {

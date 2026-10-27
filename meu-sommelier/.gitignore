@@ -44,3 +44,7 @@ example
 # generated native folders
 /ios
 /android
+
+# Banco, recuperações e credenciais administrativas locais
+server/data/
+server/*.local.txt

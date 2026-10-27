@@ -1,6 +1,7 @@
 import type { Criteria, Establishment, Recommendation, Scenario, Wine } from './types';
 import { establishments as catalog } from './demo-catalog.json';
-export const establishments = catalog as Establishment[];
+export let establishments = catalog as Establishment[];
+export const replaceEstablishments = (items: Establishment[]) => { establishments = items; };
 export const getEstablishment = (slug: string) => establishments.find(item => item.slug === slug);
 export const getWine = (slug: string, id: string) => getEstablishment(slug)?.wines.find(item => item.wineId === id && item.active);
 const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

@@ -2,6 +2,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { converse, PilotError } = require('./sommelier.cjs');
 const { publicFailure } = require('./errors.cjs');
+const { createAdminApi } = require('./admin-api.cjs');
 
 // Nesta rede o IPv6 expira; manter a resolução por hostname e o TLS normal,
 // usando IPv4 primeiro e evitando a seleção automática do endereço IPv6.
@@ -11,6 +12,7 @@ require('node:net').setDefaultAutoSelectFamily(false);
 // Segredos ficam separados do .env do Expo e nunca entram no bundle público.
 try { process.loadEnvFile(path.join(__dirname, '.env.local')); }
 catch (error) { if (error.code !== 'ENOENT') throw error; }
+const adminApi = createAdminApi();
 const origins = new Set(['http://localhost:8081', 'http://127.0.0.1:8081', ...(process.env.PILOT_ORIGINS || '').split(',').filter(Boolean)]);
 const configured = () => !!process.env.ANTHROPIC_API_KEY?.trim();
 const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
@@ -21,11 +23,12 @@ const server = http.createServer(async (req, res) => {
   const reply = (status, value) => { if (!res.destroyed) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); } };
   const origin = req.headers.origin;
   if (origin && !origins.has(origin)) return reply(403, { error: { message: 'Origem não autorizada.' } });
-  if (origin) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); }
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (origin) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Allow-Credentials', 'true'); }
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   if (req.method === 'GET' && req.url === '/api/v1/health') return reply(200, { aiReady: configured(), provider: 'anthropic', model });
+  if (await adminApi.handle(req, res, reply, origins)) return;
   if (req.method !== 'POST' || req.url !== '/api/v1/chat') return reply(404, { error: { message: 'Rota não encontrada.' } });
   if (Date.now() - windowStart > 60000) { calls = 0; windowStart = Date.now(); }
   if (calls >= 20 || inFlight >= 2) return reply(429, { error: { message: 'Muitas consultas. Aguarde um pouco.' } });
@@ -41,7 +44,7 @@ const server = http.createServer(async (req, res) => {
     for await (const chunk of req) { size += chunk.length; if (size > 40000) throw new PilotError('Mensagem muito grande.', 413); chunks.push(chunk); }
     let body;
     try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new PilotError('JSON inválido.'); }
-    const result = await converse(body, { apiKey: process.env.ANTHROPIC_API_KEY, model, signal: controller.signal });
+    const result = await converse(body, { apiKey: process.env.ANTHROPIC_API_KEY, model, signal: controller.signal, catalog: adminApi.store.listEstablishments(), resolveEstablishment: slug => adminApi.store.establishment(slug, true) });
     // Somente métricas; não registrar mensagens, chave ou dados pessoais.
     console.log(JSON.stringify({ event: 'chat_usage', ...result.usage }));
     reply(200, result);

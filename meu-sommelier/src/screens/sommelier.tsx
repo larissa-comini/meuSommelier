@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles as shared } from '@/components/ui-kit';
 import { ChatComposer } from '@/components/chat-composer';
 import { PilotControls } from '@/components/pilot-controls';
+import { useCatalog, CatalogNotice } from '@/features/catalog/context';
 import { SettingsScreen } from '@/components/settings-screen';
 import { VoiceNote } from '@/components/voice-note';
 import { getEstablishment } from '@/features/catalog/mock';
@@ -22,6 +23,7 @@ const suggestions = [
 ];
 
 export function SommelierScreen() {
+  useCatalog();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const establishment = getEstablishment(slug);
   const { width } = useWindowDimensions();
@@ -66,7 +68,7 @@ export function SommelierScreen() {
     </Modal>
     <KeyboardAvoidingView style={s.main} aria-hidden={!desktop && sidebarOpen} importantForAccessibility={!desktop && sidebarOpen ? 'no-hide-descendants' : 'auto'} behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={insets.top + 56}>
       <View style={[s.header, compact && s.headerCompact]}>
-        <View style={s.headerIdentity}>{!desktop ? <Pressable accessibilityRole="button" accessibilityLabel="Abrir menu lateral" aria-expanded={sidebarOpen} onPress={() => setSidebarOpen(true)} style={s.menuButton}><View style={s.menuGlyph}><View style={s.menuLine} /><View style={s.menuLine} /><View style={s.menuLine} /></View></Pressable> : <View style={s.tinyMonogram}><Text style={s.tinyMonogramText}>ms.</Text></View>}<View style={s.headerCopy}><Text style={s.headerTitle}>Seu sommelier pessoal</Text><Text style={s.headerSubtitle}>{establishment.name} · carta de demonstração</Text></View></View>
+        <View style={s.headerIdentity}>{!desktop ? <Pressable accessibilityRole="button" accessibilityLabel="Abrir menu lateral" aria-expanded={sidebarOpen} onPress={() => setSidebarOpen(true)} style={s.menuButton}><View style={s.menuGlyph}><View style={s.menuLine} /><View style={s.menuLine} /><View style={s.menuLine} /></View></Pressable> : <View style={s.tinyMonogram}><Text style={s.tinyMonogramText}>ms.</Text></View>}<View style={s.headerCopy}><Text style={s.headerTitle}>Seu sommelier pessoal</Text><Text style={s.headerSubtitle}>{establishment.name} · {establishment.demo === false ? 'carta do estabelecimento' : 'carta de demonstração'}</Text></View></View>
         <Pressable accessibilityRole="button" accessibilityLabel="Nova conversa" disabled={pending} onPress={resetChat} style={s.reset}><Text style={s.resetText}>{compact ? '＋ Nova' : '＋ Nova conversa'}</Text></Pressable>
       </View>
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic" style={s.scroll} contentContainerStyle={[s.conversation, !messages.length && s.emptyConversation, compact && s.compactContent]} onContentSizeChange={() => { if (messages.length) scroll.current?.scrollToEnd({ animated: false }); }}>
@@ -103,9 +105,10 @@ export function SommelierScreen() {
       </ScrollView>
       <View style={[s.footer, compact && s.compactFooter, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
         <View style={s.footerInner}>
-          <PilotControls />
+          <CatalogNotice />
+          <PilotControls demo={establishment.demo !== false} />
           <ChatComposer key={session.conversationVersion} />
-          <Text style={s.disclaimer}>Demonstração com dados fictícios.{account.profile ? ' Conta e histórico locais.' : ''} Áudio sem transcrição. 18+ · Beba com moderação.</Text>
+          <Text style={s.disclaimer}>{establishment.demo === false ? 'Carta do estabelecimento.' : 'Demonstração com dados fictícios.'}{account.profile ? ' Conta e histórico locais.' : ''} Áudio sem transcrição. 18+ · Beba com moderação.</Text>
         </View>
       </View>
     </KeyboardAvoidingView>

@@ -38,6 +38,12 @@ Nunca coloque a chave em variáveis `EXPO_PUBLIC_` nem no frontend. Os arquivos 
 
 O [guia do piloto](meu-sommelier/docs/piloto-claude.md) descreve configuração, limites, tarifas de referência e roteiro de apresentação. A carta de demonstração fica em [`demo-catalog.json`](meu-sommelier/src/features/catalog/demo-catalog.json).
 
+## Área administrativa
+
+Acesse /admin/login. A administração tem login com sessão protegida, catálogo com edição e disponibilidade, configurações e importação de PDF digital, XML, XLSX e CSV com prévia, correções e confirmação. Cada acesso administra somente seu estabelecimento.
+
+O piloto usa banco SQLite local em meu-sommelier/server/data (ignorado pelo Git). Para criar acessos, recuperar senha no ambiente local e importar cartas, consulte [o guia administrativo](meu-sommelier/docs/administracao.md). PDF escaneado exige OCR prévio. O envio automático de e-mail de recuperação e a implantação com PostgreSQL ainda estão pendentes.
+
 ## Verificações
 
 Dentro de `meu-sommelier`:
@@ -53,6 +59,6 @@ Os testes automatizados usam respostas controladas e não consomem créditos de 
 
 ## Limites desta etapa
 
-Estabelecimentos, vinhos e preços são fictícios. Conta e histórico são locais, sem autenticação real ou sincronização. Banco de dados, administração do catálogo, transcrição de áudio e publicação para clientes ainda são próximas etapas. Android e iOS precisam de validação em dispositivos reais.
+Estabelecimentos, vinhos e preços são fictícios. Conta e histórico são locais, sem autenticação real ou sincronização. Migração para banco de produção, indicadores, transcrição de áudio e publicação para clientes ainda são próximas etapas. Android e iOS precisam de validação em dispositivos reais.
 
 Consulte também a [documentação do aplicativo](meu-sommelier/README.md), o [fluxo de conversa e áudio](meu-sommelier/docs/chat-e-audio.md) e o [histórico de demonstração](meu-sommelier/docs/conta-e-historico.md).

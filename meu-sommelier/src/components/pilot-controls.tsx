@@ -4,14 +4,14 @@ import { useSession } from '@/features/session/context';
 import { formatBrl, formatUsd, referenceExchangeRate } from '@/features/chat/usage';
 import { colors, font, radius, space } from '@/theme';
 
-export function PilotControls() {
+export function PilotControls({demo=true}:{demo?:boolean}) {
   const { aiEnabled, connectingAi, toggleAi, pending, usage } = useSession();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [exchange, setExchange] = useState('');
   const rate = referenceExchangeRate(exchange);
   return <View style={s.container}>
     <View style={s.row}>
-      <Text accessibilityLiveRegion="polite" style={s.caption}>{aiEnabled ? 'Piloto com Claude · carta fictícia' : 'Demonstração · respostas por regras'}</Text>
+      <Text accessibilityLiveRegion="polite" style={s.caption}>{aiEnabled ? `Piloto com Claude · ${demo ? 'carta fictícia' : 'carta do estabelecimento'}` : 'Demonstração · respostas por regras'}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={aiEnabled ? 'Voltar à demonstração' : 'Usar Claude'} disabled={pending || connectingAi} onPress={() => void toggleAi()} style={s.button}>
         <Text style={s.action}>{connectingAi ? 'Conectando…' : aiEnabled ? 'Usar demonstração' : 'Usar Claude'}</Text>
       </Pressable>

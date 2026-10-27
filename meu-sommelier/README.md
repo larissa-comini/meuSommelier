@@ -22,6 +22,10 @@ Use o QR do servidor de desenvolvimento com Expo Go para abrir no celular, ou `n
 
 Carta fictícia ampliada, servidor local e integração opcional com a Anthropic preparados. Consulte [o guia do piloto](docs/piloto-claude.md) para configurar a chave em server/.env.local e usar o botão Usar Claude. O modo Demonstração continua sem IA; a API real depende de chave e créditos. Execute npm run server para iniciar o servidor local.
 
+## Administração e importação
+
+Acesse /admin/login para administrar o catálogo do seu estabelecimento. O piloto agora oferece login protegido, edição de vinhos, configurações e importação de PDF digital, XML, XLSX e CSV com prévia e confirmação. O banco local fica em server/data e não entra no Git. Consulte [administração e importação](docs/administracao.md).
+
 ## Próximas etapas
 
 1. Validar a jornada e identidade visual.
