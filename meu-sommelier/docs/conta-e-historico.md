@@ -45,7 +45,7 @@ Verificação das telas de acesso: tipos e lint aprovados; testes dos mocks e ex
 
 ## Configurações em tela cheia
 
-A engrenagem ao lado do nome abre uma tela inteira com três grupos: Seu perfil, Preferências de vinho e Conta e histórico. No celular, o menu lateral fecha antes da abertura. O formulário mantém alterações em rascunho: Salvar preferências aplica o nível e os filtros à conversa atual e retorna ao chat, sem gerar uma recomendação automaticamente. Voltar e o botão nativo de voltar descartam o rascunho. O histórico e as mensagens continuam no contexto da mesma conversa.
+A engrenagem ao lado do nome abre Preferências do chat: tipos de vinho, orçamento em uma lista simples e estilo das explicações ficam juntos, sem cartões separados. Conta e histórico ficam recolhidos. No celular, o menu lateral fecha antes da abertura. O formulário mantém alterações em rascunho: Salvar preferências é habilitado após uma mudança e aplica apenas os campos alterados à conversa atual, sem gerar uma recomendação automaticamente. Desfazer restaura as escolhas iniciais. O texto da busca e atualizações do chat em preferências não editadas são preservados. Voltar e o botão nativo de voltar descartam o rascunho. O histórico e as mensagens continuam no contexto da mesma conversa.
 
 Conferidos no navegador desktop e em 390 px: abertura, salvar e reabrir com tipo/orçamento selecionados, voltar sem salvar, fechamento do drawer na abertura e acesso ao botão de salvar com conteúdo rolável. Tipos, lint e exportação web aprovados. Execução em Android/iOS ainda pendente.
 

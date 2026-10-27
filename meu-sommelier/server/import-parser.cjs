@@ -21,18 +21,55 @@ function tableToRows(table) {
   if (columns.length>50 || new Set(columns).size!==columns.length) throw new Error('Use até 50 colunas com nomes distintos.');
   return { columns, rows: table.slice(1).filter(row=>row.some(value=>String(value??'').trim())).map(row=>Object.fromEntries(columns.map((key,index)=>[key,String(row[index]??'').slice(0,4000)]))), warnings: [] };
 }
+// PDF drawing order can put the entire price column after the names.
+// Rebuild lines from page coordinates instead of pairing values by list order.
+function pdfPageLines(items, viewport, transform) {
+  const positioned=items.filter(item=>typeof item.str==='string'&&item.str.trim()).map(item=>{
+    const matrix=transform(viewport.transform,item.transform);
+    return {text:item.str.trim(),x:matrix[4],y:matrix[5],height:Math.hypot(matrix[2],matrix[3])||item.height||1};
+  }).sort((a,b)=>a.y-b.y||a.x-b.x);
+  const lines=[];
+  for(const item of positioned) {
+    const last=lines[lines.length-1];
+    if(last&&Math.abs(last.y-item.y)<=Math.min(last.height,item.height)*0.25) last.items.push(item);
+    else lines.push({y:item.y,height:item.height,items:[item]});
+  }
+  return lines.map(line=>line.items.sort((a,b)=>a.x-b.x).map(item=>item.text).join('\t')).join('\n');
+}
 function pdfRows(text) {
   if (!text.trim()) throw new Error('PDF sem texto extraível. Se for escaneado, aplique OCR antes de importar.');
-  const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-  const rows=[]; const unparsed=[];
+  const lines=text.split(/\r?\n/).map(line=>line.includes('\f')?'\f':line.trim()).filter(Boolean);
+  const rows=[]; const unparsed=[]; let type='';
+  const types={espumantes:'sparkling',espumante:'sparkling',branco:'white',brancos:'white',rose:'rose',roses:'rose',tinto:'red',tintos:'red'};
+  const countrySuffix=/\([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s-]*\)\s*$/;
   for(let index=0;index<lines.length;index++) {
     const line=lines[index];
-    const match=line.match(/^(.*?)\s+(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+\.\d{2}|\d{2,5})\s*$/);
-    if(match && match[1].trim()) rows.push({ nome:match[1].trim(), preco:match[2], sku:'', tipo:'', estilo:'', origem:line });
+    if(line==='\f') continue;
+    const heading=normalize(line);
+    if(types[heading]) {type=types[heading];continue;}
+    if(heading==='tamanhosespeciais') {type='';continue;}
+    if(/^taxa\b/i.test(line)) {unparsed.push(line);continue;}
+    const match=line.match(/^(.*?)\s+(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+,\d{2}|\d+\.\d{2}|\d{2,5})\s*$/);
+    if(match && match[1].trim()) {
+      let name=match[1].trim();
+      // Only join wrapped names when a nearby continuation closes a country suffix.
+      // Otherwise the following text may be a producer or region, not the name.
+      if(!countrySuffix.test(name)) {
+        const continuation=[];
+        for(let next=index+1;next<Math.min(index+4,lines.length);next++) {
+          const candidate=lines[next];
+          if(candidate==='\f'||candidate.includes('\t')||types[normalize(candidate)]||/^taxa\b/i.test(candidate)||candidate.includes(',')) break;
+          continuation.push(candidate);
+          if(countrySuffix.test(candidate)) {name+=' '+continuation.join(' ');index=next;break;}
+        }
+      }
+      const price=/^\d{1,3}(?:\.\d{3})+$/.test(match[2])?match[2].replace(/\./g,''):match[2];
+      rows.push({nome:name,preco:price,sku:'',tipo:type,estilo:'',origem:line});
+    }
     else unparsed.push(line);
   }
   if(!rows.length) throw new Error('Não identifiquei linhas com nome e preço no PDF. Exporte uma planilha ou CSV, ou organize cada vinho com seu preço na mesma linha.');
-  return { columns:['sku','nome','tipo','estilo','preco','origem'],rows,warnings:[`Extração de PDF exige revisão: confira preços e nomes e preencha SKU, tipo e estilo. ${unparsed.length} linha(s) sem nome e preço não viraram registros.`,...unparsed.slice(0,15).map(line=>`Texto não importado: ${line.slice(0,180)}`)] };
+  return { columns:['sku','nome','tipo','estilo','preco','origem'],rows,warnings:[`Extração de PDF exige revisão: confira nomes e preços e escolha o tipo onde estiver vazio. Códigos internos são automáticos e estilo é opcional. ${unparsed.length} linha(s) sem nome e preço não viraram registros.`,...unparsed.slice(0,15).map(line=>`Texto não importado: ${line.slice(0,180)}`)] };
 }
 async function parseFile(filename, buffer) {
   const extension=filename.toLowerCase().split('.').pop();
@@ -68,13 +105,25 @@ async function parseFile(filename, buffer) {
     sheet.eachRow(row=>{ const cells=[]; for(let i=1;i<=sheet.columnCount;i++) { const cell=row.getCell(i); if(cell.type===ExcelJS.ValueType.Formula) throw new Error('Remova fórmulas e cole os valores antes de importar.'); cells.push(cell.value instanceof Date?String(cell.value.getUTCFullYear()):cell.text); } table.push(cells); });
     result=tableToRows(table); result.warnings.push(`Aba importada: ${sheet.name}. Outras abas não foram importadas.`);
   } else if(extension==='pdf') {
-    const { PDFParse }=require('pdf-parse'); const parser=new PDFParse({data:new Uint8Array(buffer)});
-    try { const info=await parser.getInfo(); if(info.total>30) throw new Error('PDF limitado a 30 páginas.'); const content=await parser.getText(); const text=content.pages.map(page=>page.text).join('\n'); if(text.length>200000) throw new Error('PDF com texto demais. Separe o arquivo.'); result=pdfRows(text); }
-    finally { await parser.destroy(); }
+    const {getDocument,Util}=await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const task=getDocument({data:new Uint8Array(buffer),isEvalSupported:false,verbosity:0});
+    try {
+      const document=await task.promise;
+      if(document.numPages>30) throw new Error('PDF limitado a 30 páginas.');
+      const pages=[];let length=0;
+      for(let number=1;number<=document.numPages;number++) {
+        const page=await document.getPage(number);
+        const content=await page.getTextContent();
+        const text=pdfPageLines(content.items,page.getViewport({scale:1}),Util.transform);
+        length+=text.length;if(length>200000) throw new Error('PDF com texto demais. Separe o arquivo.');
+        pages.push(text);page.cleanup();
+      }
+      result=pdfRows(pages.join('\n\f\n'));
+    } finally { await task.destroy(); }
   } else throw new Error('Escolha PDF, XML, XLSX ou CSV.');
   if(!result.rows.length) throw new Error('O arquivo não tem linhas de dados.');
   if(result.rows.length>500||result.columns.length>50) throw new Error('Limite de 500 linhas e 50 colunas.');
   return result;
 }
 if(require.main===module&&process.send)process.once('message',input=>parseFile(input.name,Buffer.from(input.buffer)).then(result=>process.send({result})).catch(error=>process.send({error:error.message})));
-module.exports={parseFile,parseCsv,pdfRows,normalize};
+module.exports={parseFile,parseCsv,pdfRows,pdfPageLines,normalize};

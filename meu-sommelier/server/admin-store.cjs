@@ -17,7 +17,8 @@ function validateWine(value) {
   const fail = (field, message) => errors.push({ field, message });
   for (const field of ['sku', 'name']) if (typeof value?.[field] !== 'string' || !value[field].trim() || value[field].length > (field === 'sku' ? 80 : 160)) fail(field, 'Preencha este campo dentro do limite de caracteres.');
   if (!TYPES.includes(value?.type)) fail('type', 'Selecione um tipo válido.');
-  if (!STYLES.includes(value?.style)) fail('style', 'Selecione um estilo válido.');
+  const style = typeof value?.style === 'string' ? value.style.trim() : value?.style ?? '';
+  if (style !== '' && !STYLES.includes(style)) fail('style', 'Selecione um estilo válido ou deixe sem informação.');
   if (!Number.isSafeInteger(value?.priceCents) || value.priceCents < 0 || value.priceCents > 10000000) fail('priceCents', 'Informe um preço válido, até R$ 100.000,00.');
   if (value?.currency !== 'BRL') fail('currency', 'A moeda deste piloto é BRL.');
   for (const field of ['active', 'available', 'nonVintage']) if (typeof value?.[field] !== 'boolean') fail(field, 'Informe sim ou não.');
@@ -27,7 +28,7 @@ function validateWine(value) {
   if (!(value?.vintageYear === null || Number.isInteger(value?.vintageYear) && value.vintageYear >= 1800 && value.vintageYear <= new Date().getUTCFullYear() + 1)) fail('vintageYear', 'Safra inválida.');
   if (value?.nonVintage && value?.vintageYear !== null) fail('vintageYear', 'Um vinho não safrado não pode ter safra.');
   if (errors.length) throw new AdminError(400, 'VALIDATION', 'Revise os campos indicados.', errors);
-  return Object.fromEntries(['sku', 'name', 'type', 'style', 'priceCents', 'currency', 'active', 'available', 'producer', 'country', 'region', 'vintageYear', 'nonVintage', 'body', 'acidity', 'tannin', 'sweetness', 'grapes', 'pairings'].map(key => [key, typeof value[key] === 'string' ? value[key].trim() : value[key]]));
+  return Object.fromEntries(['sku', 'name', 'type', 'style', 'priceCents', 'currency', 'active', 'available', 'producer', 'country', 'region', 'vintageYear', 'nonVintage', 'body', 'acidity', 'tannin', 'sweetness', 'grapes', 'pairings'].map(key => [key, key === 'style' ? style : typeof value[key] === 'string' ? value[key].trim() : value[key]]));
 }
 function openStore(filename = path.join(__dirname, 'data', 'sommelier.sqlite')) {
   if (filename !== ':memory:') mkdirSync(path.dirname(filename), { recursive: true });
@@ -62,9 +63,9 @@ function openStore(filename = path.join(__dirname, 'data', 'sommelier.sqlite')) 
   }
   function listEstablishments() { return db.prepare('SELECT slug FROM establishments ORDER BY rowid').all().map(row => establishment(row.slug, true)).filter(Boolean); }
   function saveWine(tenant, value, id) {
-    const wine = validateWine(value);
     const current = id ? db.prepare('SELECT * FROM wines WHERE id=? AND tenant=?').get(id, tenant) : null;
     if (id && !current) throw new AdminError(404, 'NOT_FOUND', 'Vinho não encontrado neste estabelecimento.');
+    const wine = validateWine({ ...value, sku: value?.sku || current?.sku || `VIN-${randomUUID()}` });
     if (current && current.version !== value.version) throw new AdminError(409, 'VERSION_CONFLICT', 'Este vinho foi alterado em outra sessão. Recarregue a ficha antes de salvar.');
     const duplicate = db.prepare('SELECT id FROM wines WHERE tenant=? AND sku=?').get(tenant, wine.sku);
     if (duplicate && duplicate.id !== id) throw new AdminError(409, 'SKU_CONFLICT', 'Este SKU já está em uso.', [{ field: 'sku', message: 'Use um SKU único nesta carta.' }]);

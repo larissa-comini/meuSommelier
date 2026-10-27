@@ -9,5 +9,11 @@ http.createServer((req, res) => {
   if (!file.startsWith(root + path.sep) && file !== root) { res.writeHead(403).end(); return; }
   const target = fs.existsSync(file) && fs.statSync(file).isFile() ? file : path.join(root, 'index.html');
   res.setHeader('Content-Type', mime[path.extname(target)] || 'application/octet-stream');
-  fs.createReadStream(target).pipe(res);
+  const stream = fs.createReadStream(target);
+  stream.on('error', () => {
+    if (res.headersSent) { res.destroy(); return; }
+    res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('A prévia está sendo atualizada. Recarregue em instantes.');
+  });
+  stream.pipe(res);
 }).listen(8081, '127.0.0.1', () => console.log('Preview: http://localhost:8081'));

@@ -15,6 +15,28 @@ function load(file) {
 }
 
 async function main() {
+  const { wineDraft, parseWineDraft } = load('src/features/admin/form.ts');
+  const draft = { ...wineDraft(), sku: 'SEM-ESTILO', name: 'Vinho de teste', type: 'red', price: '129,90' };
+  const flags = { active: true, available: true, nonVintage: false };
+  const parsed = parseWineDraft(draft, flags);
+  assert.deepEqual(parsed.errors, {});
+  assert.equal(parsed.wine.style, '');
+  assert.ok(parseWineDraft({ ...draft, style: 'inventado' }, flags).errors.style);
+  assert.deepEqual(parseWineDraft({ ...draft, sku: '' }, flags).errors, {});
+  const { reviewRows, reviewChanges, reviewMessage } = load('src/features/admin/import-review.ts');
+  const { catalogStatus, catalogFilter } = load('src/features/admin/catalog-state.ts');
+  assert.deepEqual(catalogFilter('unavailable'), { active: 'true', available: 'false' });
+  assert.deepEqual(catalogFilter('hidden'), { active: 'false', available: '' });
+  assert.deepEqual(catalogFilter('available'), { active: 'true', available: 'true' });
+  assert.equal(catalogStatus({ active: false, available: true }).label, 'Oculto da carta');
+  assert.equal(catalogStatus({ active: false, available: false }).field, 'active');
+  assert.equal(catalogStatus({ active: true, available: false }).value, true);
+  assert.equal(catalogStatus({ active: true, available: true }).value, false);
+  const reviewJob = { preview: [{ row: 2, valid: true }, { row: 3, valid: false }, { row: 4, valid: true }] };
+  assert.deepEqual(reviewRows(reviewJob, true).map(row => row.index), [1]);
+  assert.equal(reviewRows(reviewJob, false).length, 3);
+  assert.equal(reviewMessage(reviewJob), '1 vinho precisa da sua revisão');
+  assert.deepEqual(reviewChanges({ 1: { type: 'red', price: '99,90' } }), [{ index: 1, field: 'type', value: 'red' }, { index: 1, field: 'price', value: '99,90' }]);
   const { selectWines, getWine, recommend, establishments } = load('src/features/catalog/mock.ts');
   const { money } = load('src/features/catalog/types.ts');
   const { interpretMessage } = load('src/features/chat/conversation.ts');

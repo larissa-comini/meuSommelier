@@ -12,6 +12,75 @@ const password='Senha-somente-para-teste-123';
 function fixture(){const store=openStore(':memory:');store.provision({email:'admin@teste.local',name:'Teste',slug:'casa-da-uva',password});store.provision({email:'outro@teste.local',name:'Outro',slug:'mesa-do-vale',password});return store;}
 const status=(code)=>error=>error instanceof AdminError&&error.status===code;
 const csv='sku,nome,tipo,estilo,preco\nTESTE-1,Vinho Teste,branco,seco,"129,90"\n';
+test('cadastro gera código automaticamente e preserva o código ao editar',()=>{
+ const store=fixture();
+ try {
+  const wine=store.establishment('casa-da-uva').wines[0];
+  const created=store.saveWine('casa-da-uva',{...wine,sku:'',name:'Vinho com código automático'});
+  assert.match(created.sku,/^VIN-/);
+  const updated=store.saveWine('casa-da-uva',{...created,sku:undefined,priceCents:14990},created.wineId);
+  assert.equal(updated.sku,created.sku);
+  const second=store.saveWine('casa-da-uva',{...wine,sku:undefined,name:'Outro vinho'});
+  assert.notEqual(second.sku,created.sku);
+ } finally {store.close();}
+});
+
+test('importação gera códigos e permite corrigir o vinho sem mapear colunas',async()=>{
+ const store=fixture();
+ try {
+  const manager=importManager(store);
+  const job=await manager.upload('casa-da-uva','carta.csv',Buffer.from('nome,preco\nVinho A,"129,90"\nVinho B,"99,90"\n'));
+  assert.equal(job.totals.error,2);
+  assert.ok(job.errors.every(error=>error.field==='type'));
+  const codes=job.preview.map(row=>row.wine.sku);
+  assert.equal(new Set(codes).size,2);
+  const result=manager.update('casa-da-uva',job.id,{version:job.version,mapping:job.mapping,defaults:{...job.defaults,generateSku:false},changes:[{index:0,field:'type',value:'red'},{index:1,field:'type',value:'white'},{index:1,field:'price',value:'109,90'}]});
+  assert.equal(result.status,'ready');
+  assert.equal(result.preview[1].wine.priceCents,10990);
+  assert.deepEqual(result.preview.map(row=>row.wine.sku),codes);
+  assert.equal(manager.get('casa-da-uva',job.id).preview[1].wine.type,'white');
+  assert.throws(()=>manager.get('mesa-do-vale',job.id),status(404));
+  assert.throws(()=>manager.update('casa-da-uva',job.id,{version:result.version,mapping:result.mapping,changes:[{index:0,field:'tenant',value:'mesa-do-vale'}]}),status(400));
+  assert.throws(()=>manager.update('casa-da-uva',job.id,{version:result.version,mapping:result.mapping,changes:[{index:99,field:'type',value:'red'}]}),status(400));
+  assert.equal(manager.commit('casa-da-uva',job.id,{version:result.version}).totals.created,2);
+ } finally {store.close();}
+});
+
+test('correção de preço em reais não herda unidade em centavos do arquivo',async()=>{
+ const store=fixture();
+ try {
+  const manager=importManager(store);
+  const job=await manager.upload('casa-da-uva','carta.csv',Buffer.from('nome,tipo,priceCents\nVinho de Teste,tinto,12990\n'));
+  assert.equal(job.preview[0].wine.priceCents,12990);
+  const result=manager.update('casa-da-uva',job.id,{version:job.version,mapping:job.mapping,changes:[{index:0,field:'price',value:'150,00'}]});
+  assert.equal(result.preview[0].wine.priceCents,15000);
+  assert.equal(result.status,'ready');
+ } finally {store.close();}
+});
+test('cadastro aceita estilo vazio, ausente ou nulo e rejeita estilo desconhecido',()=>{
+ const store=fixture();
+ try {
+  const wine=store.establishment('casa-da-uva').wines[0];
+  for(const [index,style] of ['',null,undefined,'brut'].entries()) {
+   const saved=store.saveWine('casa-da-uva',{...wine,sku:`ESTILO-${index}`,style});
+   assert.equal(saved.style,style||'');
+   assert.equal(store.establishment('casa-da-uva',true).wines.find(item=>item.wineId===saved.wineId).style,style||'');
+  }
+  assert.throws(()=>store.saveWine('casa-da-uva',{...wine,sku:'ESTILO-INVALIDO',style:'inventado'}),status(400));
+ } finally {store.close();}
+});
+
+test('importação sem coluna de estilo fica pronta e salva sem inventar classificação',async()=>{
+ const store=fixture();
+ try {
+  const manager=importManager(store);
+  const job=await manager.upload('casa-da-uva','carta.csv',Buffer.from('sku,nome,tipo,preco\nSEM-ESTILO,Vinho sem estilo,branco,"129,90"\n'));
+  assert.equal(job.status,'ready');
+  assert.deepEqual(job.errors,[]);
+  assert.equal(manager.commit('casa-da-uva',job.id,{version:job.version}).totals.created,1);
+  assert.equal(store.establishment('casa-da-uva').wines.find(wine=>wine.sku==='SEM-ESTILO').style,'');
+ } finally {store.close();}
+});
 function pdfBuffer(text){const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>'];const stream=`BT /F1 12 Tf 50 700 Td (${text}) Tj ET`;objects.push(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');let file='%PDF-1.4\n';const offsets=[0];objects.forEach((object,index)=>{offsets.push(Buffer.byteLength(file));file+=`${index+1} 0 obj\n${object}\nendobj\n`;});const xref=Buffer.byteLength(file);file+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`+offsets.slice(1).map(offset=>`${String(offset).padStart(10,'0')} 00000 n \n`).join('')+`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;return Buffer.from(file);}
 test('sessão expira, exige CSRF, não aceita token falso e logout invalida cookie',()=>{
  const store=fixture();try{assert.throws(()=>store.login('admin@teste.local','errada'),status(401));const login=store.login('admin@teste.local',password,1000);assert.equal(store.authenticate(login.token,login.csrf,true,1001).tenant,'casa-da-uva');assert.throws(()=>store.authenticate(login.token,'',true,1001),status(403));assert.throws(()=>store.authenticate('falso',null,false,1001),status(401));assert.throws(()=>store.authenticate(login.token,null,false,1000+8*3600000),status(401));store.logout(login.token);assert.throws(()=>store.authenticate(login.token,null,false,1001),status(401));}finally{store.close();}

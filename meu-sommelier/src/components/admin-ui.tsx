@@ -21,8 +21,24 @@ export const adminStyles=StyleSheet.create({
   button:{minHeight:44,paddingHorizontal:space.lg,paddingVertical:space.md,borderRadius:radius.sm,backgroundColor:colors.accent,justifyContent:'center',alignItems:'center'},
   buttonText:{color:colors.surface,fontWeight:'600',fontSize:14},link:{color:colors.accent,fontSize:14,paddingVertical:space.sm},
   sectionTitle:{color:colors.ink,fontSize:20,fontWeight:'600'},divider:{borderBottomWidth:1,borderColor:colors.border,paddingBottom:space.lg,gap:space.sm},
+  secondaryButton:{backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
+  secondaryButtonText:{color:colors.accent},
+  attention:{borderColor:colors.accent,backgroundColor:colors.tint},
+  reviewRow:{borderBottomWidth:1,borderColor:colors.border,paddingVertical:space.xl,gap:space.md},
+  reviewHeading:{flex:1,minWidth:200,gap:space.xs},
+  metric:{fontSize:30,fontWeight:'600',color:colors.accent},
+  catalogPrice:{fontSize:22,fontWeight:'600',color:colors.ink},
+  catalogToolbar:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:space.md},
+  catalogList:{backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:radius.md,overflow:'hidden'},
+  catalogItem:{flexDirection:'row',alignItems:'center',flexWrap:'wrap',gap:space.md,padding:space.lg,borderBottomWidth:1,borderColor:colors.border},
+  catalogLastItem:{borderBottomWidth:0},
+  catalogInfo:{flexGrow:1,flexBasis:280,minWidth:200,gap:space.xs},
+  catalogMeta:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:space.md,flexGrow:1,flexBasis:300,maxWidth:400},
+  catalogName:{fontSize:16,fontWeight:'600',color:colors.ink},
+  settingsForm:{width:'100%',maxWidth:720,gap:space.xl},
+  settingsExtras:{borderTopWidth:1,borderBottomWidth:1,borderColor:colors.border,paddingVertical:space.lg,gap:space.lg},
 });
-export function AdminButton({title,onPress,disabled=false}:{title:string;onPress:()=>void;disabled?:boolean}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[adminStyles.button,disabled&&{opacity:0.45}]}><Text style={adminStyles.buttonText}>{title}</Text></Pressable>;}
+export function AdminButton({title,onPress,disabled=false,variant='primary'}:{title:string;onPress:()=>void;disabled?:boolean;variant?:'primary'|'secondary'}){return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[adminStyles.button,variant==='secondary'&&adminStyles.secondaryButton,(disabled||pressed)&&{opacity:disabled?0.45:0.75}]}><Text style={[adminStyles.buttonText,variant==='secondary'&&adminStyles.secondaryButtonText]}>{title}</Text></Pressable>;}
 export function AdminField({label,error,...props}:TextInputProps&{label:string;error?:string}){return <View style={adminStyles.field}><Text style={adminStyles.label}>{label}</Text><TextInput {...props} accessibilityLabel={label} accessibilityHint={error} aria-invalid={!!error} style={[adminStyles.input,props.multiline&&{minHeight:80},props.style]}/>{error&&<Text accessibilityRole="alert" style={adminStyles.error}>{error}</Text>}</View>;}
 export function AdminSelect({label,value,onChange,options,disabled=false}:{label:string;value:string;onChange:(value:string)=>void;options:{value:string;label:string}[];disabled?:boolean}){
   const control=<Host matchContents colorScheme="light" seedColor={colors.accent}><Picker selectedValue={value} onValueChange={onChange} enabled={!disabled} testID={label}>{options.map(option=><Picker.Item key={option.value} value={option.value} label={option.label}/>)}</Picker></Host>;
@@ -39,7 +55,7 @@ export function AdminGate({children,title}:PropsWithChildren<{title:string}>){
   if(error)return <View style={adminStyles.page}><Text accessibilityRole="alert" style={adminStyles.error}>{error}</Text><AdminButton title="Tentar novamente" onPress={()=>{setChecking(true);setError('');void refreshSession().catch(e=>setError(adminError(e))).finally(()=>setChecking(false));}}/><Link href="/admin/login" style={adminStyles.link}>Voltar ao acesso</Link></View>;
   if(!admin.session)return null;
   return <ScrollView style={{flex:1,backgroundColor:colors.paper}} keyboardShouldPersistTaps="handled" contentContainerStyle={adminStyles.page}>
-    <View style={adminStyles.header}><View><Text style={adminStyles.brand}>ms.</Text><Text style={adminStyles.subtitle}>{admin.session.establishment.name} · Administração</Text></View><View style={adminStyles.row}><Link href="/admin/catalog" style={adminStyles.link}>Catálogo</Link><Link href="/admin/imports" style={adminStyles.link}>Importar carta</Link><Link href="/admin/settings" style={adminStyles.link}>Estabelecimento</Link><Pressable accessibilityRole="button" onPress={()=>void admin.logout().then(()=>router.replace('/admin/login')).catch(e=>setError(adminError(e)))}><Text style={adminStyles.link}>Sair</Text></Pressable></View></View>
+    <View style={adminStyles.header}><View><Text style={adminStyles.brand}>ms.</Text><Text style={adminStyles.subtitle}>{admin.session.establishment.name} · Administração</Text></View><View style={adminStyles.row}><Link href="/admin/catalog" style={adminStyles.link}>Catálogo</Link><Link href="/admin/imports" style={adminStyles.link}>Importar carta</Link><Link href="/admin/settings" style={adminStyles.link}>Configurações</Link><Pressable accessibilityRole="button" onPress={()=>void admin.logout().then(()=>router.replace('/admin/login')).catch(e=>setError(adminError(e)))}><Text style={adminStyles.link}>Sair</Text></Pressable></View></View>
     <Text accessibilityRole="header" style={adminStyles.title}>{title}</Text>{children}
   </ScrollView>;
 }

@@ -26,36 +26,44 @@ function parseUpload(name,buffer) {
 }
 function importManager(store) {
   const {db}=store;
-  function get(tenant,id) {const row=db.prepare('SELECT data FROM imports WHERE id=? AND tenant=?').get(id,tenant);if(!row)throw new AdminError(404,'NOT_FOUND','Importação não encontrada.');return JSON.parse(row.data);}
+  function get(tenant,id) {const row=db.prepare('SELECT data FROM imports WHERE id=? AND tenant=?').get(id,tenant);if(!row)throw new AdminError(404,'NOT_FOUND','Importação não encontrada.');const item=JSON.parse(row.data);return ['completed','rolled_back'].includes(item.status)?item:preview(item);}
   const persist=item=>db.prepare('UPDATE imports SET data=? WHERE id=? AND tenant=?').run(JSON.stringify(item),item.id,item.tenant);
   function preview(item) {
     const seen=new Set(); const errors=[];const current=store.establishment(item.tenant);
     const rows=item.rows.map((raw,index)=>{
-      const field=name=>String(raw[item.mapping[name]]??'').trim();
+      const field=name=>String(item.overrides?.[index]?.[name]??raw[item.mapping[name]]??'').trim();
       const rawType=normalize(field('type')||item.defaults.type||'');
       const type=({tinto:'red',branco:'white',rose:'rose',espumante:'sparkling',fortificado:'fortified'})[rawType]||rawType;
       const year=field('vintageYear');
-      const wine={sku:field('sku')||(item.defaults.generateSku?`IMP-${item.id.slice(0,8)}-${index+1}`:''),name:field('name'),type,style:field('style')||item.defaults.style||'',priceCents:parsePrice(field('price'),normalize(item.mapping.price)==='pricecents'),currency:field('currency')||'BRL',active:bool(field('active'),true),available:bool(field('available'),true),nonVintage:bool(field('nonVintage'),false),vintageYear:year?Number(year):null,producer:field('producer')||null,country:field('country')||null,region:field('region')||null,grapes:field('grapes')?field('grapes').split(/[,;]/).map(v=>v.trim()).filter(Boolean):[],pairings:field('pairings')?field('pairings').split(';').map(v=>v.trim()).filter(Boolean):[],...Object.fromEntries(['body','acidity','tannin','sweetness'].map(key=>[key,field(key)?Number(field(key)):null]))};
+      const wine={sku:field('sku')||`IMP-${item.id.slice(0,8)}-${index+1}`,name:field('name'),type,style:field('style')||item.defaults.style||'',priceCents:parsePrice(field('price'),item.overrides?.[index]?.price===undefined&&normalize(item.mapping.price)==='pricecents'),currency:field('currency')||'BRL',active:bool(field('active'),true),available:bool(field('available'),true),nonVintage:bool(field('nonVintage'),false),vintageYear:year?Number(year):null,producer:field('producer')||null,country:field('country')||null,region:field('region')||null,grapes:field('grapes')?field('grapes').split(/[,;]/).map(v=>v.trim()).filter(Boolean):[],pairings:field('pairings')?field('pairings').split(';').map(v=>v.trim()).filter(Boolean):[],...Object.fromEntries(['body','acidity','tannin','sweetness'].map(key=>[key,field(key)?Number(field(key)):null]))};
       let rowErrors=[];
       try {validateWine(wine);if(seen.has(wine.sku))throw new AdminError(400,'DUPLICATE','SKU repetido no arquivo.',[{field:'sku',message:'SKU repetido no arquivo.'}]);seen.add(wine.sku);}catch(error){rowErrors=error.fieldErrors||[{field:'row',message:error.message}];}
       errors.push(...rowErrors.map(error=>({row:index+2,...error,code:'VALIDATION'})));
       const existing=current.wines.find(value=>value.sku===wine.sku);
       return {row:index+2,wine,action:existing?'update':'create',valid:!rowErrors.length};
     });
-    return {...item,preview:rows,errors,totals:{created:rows.filter(row=>row.valid&&row.action==='create').length,updated:rows.filter(row=>row.valid&&row.action==='update').length,ignored:0,error:rows.filter(row=>!row.valid).length},status:errors.length?'validating':'ready'};
+    return {...item,defaults:{...item.defaults,generateSku:true},preview:rows,errors,totals:{created:rows.filter(row=>row.valid&&row.action==='create').length,updated:rows.filter(row=>row.valid&&row.action==='update').length,ignored:0,error:rows.filter(row=>!row.valid).length},status:errors.length?'validating':'ready'};
   }
   async function upload(tenant,name,buffer) {
     if(buffer.length>8*1024*1024)throw new AdminError(413,'FILE_TOO_LARGE','O arquivo deve ter até 8 MB.');
     const parsed=await parseUpload(name,buffer);
     const mapping=Object.fromEntries(FIELDS.map(field=>[field,parsed.columns.find(column=>aliases[field].includes(normalize(column.split('.').pop())))||'']));
-    const item=preview({id:randomUUID(),tenant,name:name.slice(0,160),version:1,catalogVersion:store.establishment(tenant).version,mapping,defaults:{type:'',style:'',generateSku:false},columns:parsed.columns,rows:parsed.rows,warnings:parsed.warnings,createdAt:new Date().toISOString()});
+    const item=preview({id:randomUUID(),tenant,name:name.slice(0,160),version:1,catalogVersion:store.establishment(tenant).version,mapping,defaults:{type:'',style:'',generateSku:true},columns:parsed.columns,rows:parsed.rows,warnings:parsed.warnings,createdAt:new Date().toISOString()});
     db.prepare('INSERT INTO imports VALUES(?,?,?)').run(item.id,tenant,JSON.stringify(item));return item;
   }
   function update(tenant,id,body) {
     const item=get(tenant,id);if(['completed','rolled_back'].includes(item.status))throw new AdminError(409,'IMPORT_CLOSED','Esta importação já foi concluída.');
     if(body.version!==item.version)throw new AdminError(409,'VERSION_CONFLICT','A prévia mudou. Recarregue a importação.');
     if(!body.mapping||typeof body.mapping!=='object'||Object.values(body.mapping).some(column=>column!==''&&!item.columns.includes(column)))throw new AdminError(400,'VALIDATION','Mapeamento inválido.');
-    const defaults={type:body.defaults?.type||'',style:body.defaults?.style||'',generateSku:body.defaults?.generateSku===true};
+    const defaults={type:body.defaults?.type||'',style:body.defaults?.style||'',generateSku:true};
+    if(body.changes!==undefined) {
+      if(!Array.isArray(body.changes)||body.changes.length>10000)throw new AdminError(400,'VALIDATION','Ajustes inválidos.');
+      item.overrides={...item.overrides};
+      for(const change of body.changes) {
+        if(!Number.isInteger(change.index)||!item.rows[change.index]||!FIELDS.includes(change.field)||typeof change.value!=='string'||change.value.length>4000)throw new AdminError(400,'VALIDATION','Ajuste inválido.');
+        item.overrides[change.index]={...item.overrides[change.index],[change.field]:change.value};
+      }
+    }
     if(body.corrections) for(const correction of body.corrections) {if(!Number.isInteger(correction.index)||!item.rows[correction.index]||!item.columns.includes(correction.column)||typeof correction.value!=='string'||correction.value.length>4000)throw new AdminError(400,'VALIDATION','Correção inválida.');item.rows[correction.index][correction.column]=correction.value;}
     const result=preview({...item,mapping:Object.fromEntries(FIELDS.map(field=>[field,body.mapping[field]||''])),defaults,version:item.version+1,catalogVersion:store.establishment(tenant).version});persist(result);return result;
   }
